@@ -57,13 +57,15 @@ for (let method of methods) {
 function raycastActivate() {
     // 检查 $request.headers 是否有 arthals 字段
     if ($request.headers['arthals']) {
+        console.log(`[activator] arthals done`);
         $done({});
         return;
     }
+    let new_url = $request.url.replace('https://backend.raycast.com', 'https://raycast.lololo.store')
+    console.log(`[raycastActivate] replace request url: ${new_url}`);
+    console.log($request)
     $done({
-        url: $request.url.replace('https://backend.raycast.com', 'http://localhost:12443'),
-        headers: $request.headers,
-        body: $request.body,
+        url: new_url
     });
 }
 
