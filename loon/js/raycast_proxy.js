@@ -1,4 +1,6 @@
-'use strict';
+/*
+raycast proxy	
+ */
 
 function transformToString(obj) {
     if (typeof obj === 'object') {
