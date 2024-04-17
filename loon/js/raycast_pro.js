@@ -43,17 +43,17 @@ function change_me_body(body) {
 
 function change_get_sync_body(url_str){
     // https://backend.raycast.com/api/v1/me/sync?after=2024-02-02T02:27:01.141195Z
-    let sync_data = $peristentStore.read("raycast_sync_data");
+
+    let sync_data = $persistentStore.read("raycast_sync_data");
     if (!sync_data){
-        $done({body: {updated: [], updated_at: null, deleted: []}});
+        $done({body: JSON.stringify({updated: [], updated_at: null, deleted: []})});
         return
     }
     const url = new URL(url_str);
-    console.log(url)
     const params = new URLSearchParams(url.search);
-    console.log(params)
     const after_value = params.get("after");
-    console.log(after_value)
+
+    let resp = sync_data
     if (after_value) {
         const after_date = Date.parse(after_value);
         sync_data = JSON.parse(sync_data)
@@ -62,29 +62,29 @@ function change_get_sync_body(url_str){
             return updated_at > after_date
         })
         sync_data.updated = updated
-
-        $done({body:JSON.stringify(sync_data)});
+        resp = JSON.stringify(sync_data)
     } else {
         console.log("No 'after' parameter found in the URL.");
-        $done({body:sync_data});
     }
+    // console.log(resp)
+    $done({body:resp})
 }
 
 function change_put_sync_body(body){
     const updated_at = new Date().toISOString()
     const body_obj = JSON.parse(body);
-    const bodyDeleted = body.deleted
+    const bodyDeleted = body.deleted? body.deleted : []
     body_obj.deleted = []
     body_obj.updated_at = updated_at
 
 
-    let sync_data = $peristentStore.read("raycast_sync_data");
+    let sync_data = $persistentStore.read("raycast_sync_data");
     if (!sync_data){
         for (const item of body_obj.updated) {
             item.updated_at = updated_at
             item.created_at = item.client_updated_at
         }
-        $peristentStore.write(JSON.stringify(body_obj), "raycast_sync_data");
+        $persistentStore.write(JSON.stringify(body_obj), "raycast_sync_data");
     }else{
         let updated = body_obj.updated.filter((item) => !bodyDeleted.includes(item.id))
         for (const item of body_obj.updated) {
@@ -93,40 +93,30 @@ function change_put_sync_body(body){
         }
         updated = updated.concat(body_obj.updated)
         body_obj.updated = updated
-        $peristentStore.write(JSON.stringify(body_obj), "raycast_sync_data");
+        $persistentStore.write(JSON.stringify(body_obj), "raycast_sync_data");
     }
-
-    $done({updated_at:updated_at})
-}
-
-
-function write_sync_data(data){
-    $peristentStore.write(data, "raycast_sync_data"); //参数分别代表:写入的数据,数据存储的Key名称，用于取出数据
-}
-function read_sync_data(){
-    var ReadResult = $peristentStore.read("raycast_sync_data");
-    console.log(ReadResult);//输出数据
+    const resp = JSON.stringify({updated_at:updated_at})
+    console.log(resp)
+    $done({body:resp})
 }
 
 function main() {
-    console.log($httpClient)
-    console.log($peristentStore)
     let url = $request.url
     let method = $request.method
-    // console.log($request)
+    console.log(`[${method}]: ${url}`)
     if (url.includes("/api/v1/me/sync")) {
         if (method == "GET"){
             change_get_sync_body(url)
             return
         }else if (method == "PUT"){
-            change_put_sync_body($response.body)
+            change_put_sync_body($request.body)
             return
         }
     }else if (url.includes("/api/v1/me")) {
         change_me_body($response.body);
         return
     } 
-    $done()
+    $done({})
 }
 
 main()
